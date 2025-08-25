@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Whack-a-Mole — GameHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root{
+      --bg:#121212;
+      --surface:#1e1e1e;
+      --text:#f5f5f5;
+      --muted:#bdbdbd;
+      --accent:#4cc9f0;
+      --danger:#ff6b6b;
+      --good:#7ef29a;
+      --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    html,body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+      overscroll-behavior: none;              /* disable pull-to-refresh/bounce */
+      touch-action: none;                     /* prevent scroll/zoom gestures during play */
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page{
+      min-height:100dvh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px 16px;
+    }
+
+    .wrap{
+      width:min(90vw, 600px);
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    /* Top bar */
+    .topbar{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items:center;
+      gap:12px;
+    }
+    .pill{
+      background:var(--surface);
+      padding:10px 14px;
+      border-radius:14px;
+      display:flex; align-items:center; justify-content:center;
+      gap:10px;
+      font-weight:600;
+      min-height:44px;
+    }
+    .pill .val{ color:var(--accent); font-variant-numeric: tabular-nums; font-weight:700; }
+    .title{ text-align:center; font-weight:700; letter-spacing:.3px; color:var(--muted); }
+
+    /* Controls */
+    .controls{
+      background:var(--surface);
+      border-radius:16px;
+      padding:12px;
+      display:grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap:10px;
+    }
+    .control{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:.9rem;
+    }
+    label{ color:var(--muted); font-weight:600; }
+    select,input[type="number"]{
+      width:100%;
+      border:1px solid #2a2a2a;
+      background:#171717;
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:1rem;
+      outline:none;
+    }
+    button.primary{
+      align-self:stretch;
+      border:none;
+      border-radius:12px;
+      padding:12px 14px;
+      font-weight:800;
+      font-size:1rem;
+      background:linear-gradient(180deg, color-mix(in oklab, var(--accent) 92%, #fff 0%) , color-mix(in oklab, var(--accent) 60%, #000 0%));
+      color:#001219;
+      cursor:pointer;
+      transition: transform .06s ease, filter .2s ease, opacity .2s ease;
+    }
+    button.primary:disabled{ opacity:.5; cursor:not-allowed; }
+    button.primary:active{ transform:translateY(1px) scale(.99); }
+
+    /* Grid board */
+    .board{
+      background:var(--surface);
+      border-radius:20px;
+      padding:12px;
+      display:grid;
+      gap:10px;
+      user-select:none;
+    }
+    .hole{
+      position:relative;
+      aspect-ratio:1 / 1;
+      border:none;
+      border-radius:16px;
+      background:
+        radial-gradient(60% 60% at 50% 60%, #0c0c0c 0 50%, transparent 51%) top/100% 60% no-repeat,
+        #111;
+      box-shadow: inset 0 -10px 18px rgba(0,0,0,.6), inset 0 8px 12px rgba(255,255,255,.02);
+      color:inherit;
+      cursor:pointer;
+      outline:none;
+      padding:0;
+      overflow:hidden;
+      display:grid;
+      place-items:end center;
+      transition:box-shadow .2s ease;
+    }
+    .hole:focus-visible{
+      box-shadow: var(--ring), inset 0 -10px 18px rgba(0,0,0,.6), inset 0 8px 12px rgba(255,255,255,.02);
+    }
+    .hole[disabled]{ cursor:not-allowed; }
+
+    /* Mole */
+    .mole{
+      position:absolute;
+      bottom:-55%;
+      left:50%;
+      translate:-50% 0;
+      font-size: clamp(28px, 8.5vw, 64px);
+      line-height:1;
+      filter: drop-shadow(0 6px 4px rgba(0,0,0,.45));
+      opacity:0;
+      transform: scale(.7);
+      transition: opacity .18s ease, transform .18s ease, bottom .18s ease;
+      pointer-events:none; /* click the hole (button) itself */
+    }
+    .mole.up{
+      opacity:1;
+      bottom:10%;
+      transform: scale(1);
+    }
+    .mole.hit{
+      animation: bonk .28s ease forwards;
+    }
+    @keyframes bonk{
+      0%{ transform:scale(1) translateY(0); opacity:1; }
+      60%{ transform:scale(.85) translateY(8%); }
+      100%{ transform:scale(.6) translateY(25%); opacity:0; }
+    }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:16px;
+    }
+    .modal{
+      width:min(90vw,480px);
+      background:var(--surface);
+      border-radius:18px;
+      padding:20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      text-align:center;
+    }
+    .modal h2{ margin:.2em 0 .1em; }
+    .modal p{ color:var(--muted); margin:.3em 0 1em; }
+    .modal .score{
+      font-size: clamp(28px, 6vw, 42px);
+      font-weight:900; color:var(--good);
+      margin:.3em 0 .8em;
+    }
+    .modal-actions{
+      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+    }
+    .btn{
+      border:none; cursor:pointer;
+      border-radius:12px; padding:12px 16px;
+      font-weight:800; font-size:1rem;
+    }
+    .btn.play-again{ background:var(--accent); color:#00202a; }
+    .btn.home{ background:#2a2a2a; color:var(--text); }
+    .hidden{ display:none !important; }
+
+    /* Footer hint */
+    .hint{ text-align:center; color:var(--muted); font-size:.9rem; }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; animation-duration:.001ms !important; animation-iteration-count:1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <main class="wrap" aria-labelledby="title">
+      <div class="topbar" role="region" aria-label="Score and Timer">
+        <div class="pill" aria-live="polite" aria-atomic="true">Score: <span id="score" class="val">0</span></div>
+        <div id="title" class="title">Whack-a-Mole</div>
+        <div class="pill" aria-live="polite" aria-atomic="true">Time: <span id="timeLeft" class="val">30</span>s</div>
+      </div>
+
+      <section class="controls" aria-label="Game Settings">
+        <div class="control">
+          <label for="gridSize">Grid</label>
+          <select id="gridSize" aria-label="Grid size">
+            <option value="3">3 × 3</option>
+            <option value="4">4 × 4</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="duration">Duration (s)</label>
+          <input id="duration" type="number" min="10" max="180" step="5" value="30" inputmode="numeric" />
+        </div>
+        <button id="startBtn" class="primary" aria-label="Start game">Start</button>
+      </section>
+
+      <section>
+        <div id="board" class="board" aria-label="Mole board" role="grid" aria-live="off"></div>
+      </section>
+
+      <p class="hint">Tap / click the mole to score. Arrow keys move focus; Space/Enter hit.</p>
+    </main>
+  </div>
+
+  <!-- Screen reader live region (for "Hit!" feedback) -->
+  <div id="srLive" class="sr-only" aria-live="polite" style="position:absolute;left:-9999px;height:1px;width:1px;overflow:hidden;">
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="modalWrap" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div class="modal">
+      <h2 id="modalTitle">Time’s up!</h2>
+      <p id="modalDesc">Great whacking!</p>
+      <div class="score">Your score: <span id="finalScore">0</span></div>
+      <div class="modal-actions">
+        <button class="btn play-again" id="playAgainBtn">Play Again</button>
+        <button class="btn home" id="homeBtn">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    /*** DOM references ***/
+    const boardEl     = document.getElementById('board');
+    const startBtn    = document.getElementById('startBtn');
+    const gridSizeSel = document.getElementById('gridSize');
+    const durationInp = document.getElementById('duration');
+    const scoreEl     = document.getElementById('score');
+    const timeEl      = document.getElementById('timeLeft');
+
+    const modalWrap   = document.getElementById('modalWrap');
+    const finalScore  = document.getElementById('finalScore');
+    const playAgain   = document.getElementById('playAgainBtn');
+    const homeBtn     = document.getElementById('homeBtn');
+    const srLive      = document.getElementById('srLive');
+
+    /*** Game state ***/
+    let rows=3, cols=3, totalCells=9;
+    let score=0, totalDuration=30, remaining=30;
+    let spawnTimer=null, hideTimer=null, countdownTimer=null;
+    let currentIndex = -1;
+    let inPlay=false;
+    let cellButtons = [];
+    let lastFocusIndex = 0;
+
+    /*** Utilities ***/
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const randInt = (maxExcl) => Math.floor(Math.random()*maxExcl);
+
+    function setBoardGrid(r,c){
+      boardEl.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
+    }
+
+    function buildBoard(){
+      boardEl.innerHTML = '';
+      rows = cols = parseInt(gridSizeSel.value,10);
+      totalCells = rows * cols;
+      setBoardGrid(rows, cols);
+
+      for(let r=0; r<rows; r++){
+        for(let c=0; c<cols; c++){
+          const i = r*cols + c;
+          const btn = document.createElement('button');
+          btn.className = 'hole';
+          btn.type = 'button';
+          btn.setAttribute('role', 'gridcell');
+          btn.setAttribute('aria-label', `Mole at row ${r+1} col ${c+1}`);
+          btn.dataset.index = String(i);
+
+          const mole = document.createElement('span');
+          mole.className = 'mole';
+          mole.setAttribute('aria-hidden','true');
+          mole.textContent = '🐹'; // friendly lil’ guy
+          btn.appendChild(mole);
+
+          btn.addEventListener('click', () => tryHit(i));
+          btn.addEventListener('keydown', (e) => {
+            if(e.key === ' ' || e.key === 'Enter'){
+              e.preventDefault();
+              tryHit(i);
+            } else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+              e.preventDefault();
+              moveFocus(e.key, i);
+            }
+          });
+
+          boardEl.appendChild(btn);
+        }
+      }
+      cellButtons = Array.from(boardEl.querySelectorAll('.hole'));
+      // Ensure square grid gaps render well
+      boardEl.style.gridAutoRows = '1fr';
+    }
+
+    function resetState(){
+      stopTimers();
+      score = 0;
+      remaining = totalDuration = clamp(parseInt(durationInp.value,10) || 30, 10, 180);
+      timeEl.textContent = String(remaining);
+      scoreEl.textContent = '0';
+      clearMoles();
+      updateControls(true);
+      inPlay = false;
+      currentIndex = -1;
+      lastFocusIndex = 0;
+    }
+
+    function updateControls(enabledBeforeStart){
+      gridSizeSel.disabled = !enabledBeforeStart ? true : false;
+      durationInp.disabled = !enabledBeforeStart ? true : false;
+      startBtn.disabled    = !enabledBeforeStart ? true : false;
+    }
+
+    function clearMoles(){
+      cellButtons.forEach(btn => {
+        const mole = btn.querySelector('.mole');
+        mole?.classList.remove('up','hit');
+        btn.dataset.up = '0';
+      });
+    }
+
+    function stopTimers(){
+      [spawnTimer, hideTimer, countdownTimer].forEach(t => { if(t) clearInterval(t); });
+      spawnTimer = hideTimer = countdownTimer = null;
+    }
+
+    /*** Difficulty ramp — returns {spawnInterval, visibleTime} in ms ***/
+    function getDifficulty(){
+      const progress = 1 - (remaining / totalDuration); // 0 → 1 across the round
+      // Start easier, end faster
+      const spawnStart = 950, spawnEnd = 420;       // interval between spawns
+      const visStart   = 900, visEnd   = 450;       // how long mole stays up
+      const ease = (t)=> 1 - Math.pow(1-t, 2);      // quadratic ease-out
+      const t = ease(progress);
+      return {
+        spawnInterval: Math.round(spawnStart + (spawnEnd - spawnStart) * t),
+        visibleTime:   Math.round(visStart   + (visEnd   - visStart)   * t),
+      };
+    }
+
+    /*** Spawning ***/
+    function spawnMole(){
+      // Determine difficulty each time based on remaining time
+      const { spawnInterval, visibleTime } = getDifficulty();
+
+      // Manage spawn timer cadence: adjust interval dynamically
+      if(spawnTimer){ clearInterval(spawnTimer); }
+      spawnTimer = setInterval(() => {
+        // Hide previous mole (if still up)
+        if(currentIndex >= 0){
+          const prev = cellButtons[currentIndex]?.querySelector('.mole');
+          prev?.classList.remove('up');
+          cellButtons[currentIndex].dataset.up = '0';
+        }
+
+        // Pick a new cell that's different to previous (when possible)
+        let idx = randInt(totalCells);
+        if(totalCells > 1){
+          for(let attempts=0; attempts<3 && idx === currentIndex; attempts++){
+            idx = randInt(totalCells);
+          }
+        }
+        currentIndex = idx;
+
+        const btn = cellButtons[idx];
+        const mole = btn.querySelector('.mole');
+        btn.dataset.up = '1';
+        mole.classList.remove('hit');
+        mole.classList.add('up');
+
+        // Auto-hide after visibleTime
+        if(hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          mole.classList.remove('up');
+          btn.dataset.up = '0';
+        }, visibleTime);
+
+      }, spawnInterval);
+    }
+
+    /*** Hit handling ***/
+    function tryHit(index){
+      if(!inPlay) return;
+      const btn = cellButtons[index];
+      if(!btn) return;
+      const mole = btn.querySelector('.mole');
+      const isUp = btn.dataset.up === '1';
+      if(!isUp) return; // no points for empty hole
+
+      // Score!
+      btn.dataset.up = '0';
+      score++;
+      scoreEl.textContent = String(score);
+      srLive.textContent = 'Hit!';
+      mole.classList.add('hit');
+      mole.classList.remove('up');
+
+      // Tiny visual feedback on the hole
+      btn.animate(
+        [{ transform:'scale(1)' }, { transform:'scale(.98)' }, { transform:'scale(1)' }],
+        { duration:160, easing:'ease-out' }
+      );
+    }
+
+    /*** Countdown ***/
+    function startCountdown(){
+      timeEl.textContent = String(remaining);
+      countdownTimer = setInterval(() => {
+        remaining--;
+        timeEl.textContent = String(Math.max(0, remaining));
+        if(remaining <= 0){
+          endGame();
+        }
+      }, 1000);
+    }
+
+    /*** Start/End flows ***/
+    function startGame(){
+      if(inPlay) return;
+      buildBoard();
+      resetState(); // ensures remaining/score/time reflect inputs
+      updateControls(false); // lock settings during play
+      inPlay = true;
+      // Move focus to first cell for keyboard players
+      setTimeout(() => cellButtons[0]?.focus(), 50);
+      spawnMole();
+      startCountdown();
+    }
+
+    function endGame(){
+      if(!inPlay) return;
+      inPlay = false;
+      stopTimers();
+      clearMoles();
+      finalScore.textContent = String(score);
+      modalWrap.style.display = 'flex';
+      // Restore controls for next round
+      updateControls(true);
+    }
+
+    function closeModal(){
+      modalWrap.style.display = 'none';
+    }
+
+    /*** Keyboard focus navigation ***/
+    function moveFocus(key, fromIndex){
+      let r = Math.floor(fromIndex / cols);
+      let c = fromIndex % cols;
+      if(key === 'ArrowUp')    r = clamp(r-1, 0, rows-1);
+      if(key === 'ArrowDown')  r = clamp(r+1, 0, rows-1);
+      if(key === 'ArrowLeft')  c = clamp(c-1, 0, cols-1);
+      if(key === 'ArrowRight') c = clamp(c+1, 0, cols-1);
+      const idx = r*cols + c;
+      cellButtons[idx]?.focus();
+      lastFocusIndex = idx;
+    }
+
+    /*** Event wiring ***/
+    startBtn.addEventListener('click', () => {
+      rows = cols = parseInt(gridSizeSel.value,10);
+      buildBoard();
+      startGame();
+    });
+
+    playAgain.addEventListener('click', () => {
+      closeModal();
+      startGame();
+    });
+
+    homeBtn.addEventListener('click', () => {
+      // Navigate back to hub
+      window.location.href = 'index.html';
+    });
+
+    // Rebuild board when grid size changes (before starting)
+    gridSizeSel.addEventListener('change', () => {
+      if(inPlay) return;
+      buildBoard();
+    });
+
+    // Prevent spacebar from scrolling the page on focused buttons (safety)
+    window.addEventListener('keydown', (e) => {
+      if(e.key === ' '){
+        e.preventDefault();
+      }
+    }, { passive:false });
+
+    // Initial board
+    buildBoard();
+    resetState();
+  })();
+  </script>
+</body>
+</html>
