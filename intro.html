@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Welcome</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #121212;
+            color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .intro-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 90vw;
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
+        }
+
+        .icon {
+            font-size: clamp(3rem, 10vw, 6rem);
+            color: #4cc9f0;
+            margin-bottom: 1.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        .title {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #4cc9f0, #3ab0d0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            color: #cccccc;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .play-button {
+            background-color: #4cc9f0;
+            color: #121212;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 201, 240, 0.3);
+        }
+
+        .play-button:hover {
+            background-color: #3ab0d0;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 201, 240, 0.4);
+        }
+
+        .play-button:active {
+            transform: translateY(-1px);
+        }
+
+        .fade-out {
+            animation: fadeOut 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="intro-container" id="introContainer">
+        <div class="icon">
+            <i class="fas fa-gamepad"></i>
+        </div>
+        <h1 class="title">GameHub</h1>
+        <p class="subtitle">Play classic games instantly!</p>
+        <button class="play-button" id="playButton">Let's Play</button>
+    </div>
+
+    <script>
+        // DOM elements
+        const introContainer = document.getElementById('introContainer');
+        const playButton = document.getElementById('playButton');
+
+        // Redirect function
+        function redirectToIndex() {
+            introContainer.classList.add('fade-out');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 800);
+        }
+
+        // Event listener for button click
+        playButton.addEventListener('click', redirectToIndex);
+
+        // Auto-redirect after 3 seconds
+        setTimeout(redirectToIndex, 3000);
+    </script>
+</body>
+</html>
