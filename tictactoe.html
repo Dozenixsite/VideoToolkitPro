@@ -6,6 +6,19 @@
     <title>Tic Tac Toe - GameHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-hover: #2a2a2a;
+            --bg-nav: #0a0a0a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #cccccc;
+            --accent: #4cc9f0;
+            --shadow: 0 2px 6px rgba(0,0,0,0.3);
+            --border-radius: 8px;
+            --border: #3a3a3a;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,23 +26,9 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
-            --primary: #8a2be2;
-            --secondary: #4b0082;
-            --dark: #121212;
-            --darker: #0a0a0a;
-            --light: #f5f5f5;
-            --gray: #2d2d2d;
-            --card-bg: #1e1e1e;
-            --hover: #2a2a2a;
-            --x-color: #ff6b6b;
-            --o-color: #4cc9f0;
-            --border: #3a3a3a;
-        }
-
         body {
-            background: linear-gradient(135deg, var(--darker), var(--dark));
-            color: var(--light);
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
             min-height: 100vh;
             padding-bottom: 40px;
         }
@@ -43,13 +42,12 @@
 
         /* Header Styles */
         header {
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 20px 0;
+            background-color: var(--bg-nav);
+            padding: 15px 0;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow);
         }
 
         .header-content {
@@ -64,16 +62,12 @@
             gap: 12px;
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--primary);
+            color: var(--accent);
             text-decoration: none;
         }
 
-        .logo i {
-            color: #ff6b6b;
-        }
-
         nav a {
-            color: var(--light);
+            color: var(--text-primary);
             text-decoration: none;
             font-weight: 500;
             padding: 8px 15px;
@@ -82,8 +76,8 @@
         }
 
         nav a:hover {
-            background: rgba(138, 43, 226, 0.2);
-            color: var(--primary);
+            background-color: var(--bg-card);
+            color: var(--accent);
         }
 
         /* Game Section */
@@ -95,20 +89,20 @@
             font-size: 2rem;
             margin-bottom: 20px;
             text-align: center;
-            color: var(--primary);
+            color: var(--accent);
         }
 
         .game-rules {
-            background: var(--card-bg);
-            border-radius: 10px;
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
             padding: 20px;
             margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow);
         }
 
         .game-rules h3 {
             margin-bottom: 15px;
-            color: var(--primary);
+            color: var(--accent);
         }
 
         .game-rules ul {
@@ -117,7 +111,7 @@
 
         .game-rules li {
             margin-bottom: 10px;
-            color: #b0b0b0;
+            color: var(--text-secondary);
         }
 
         /* Game Board Container */
@@ -160,7 +154,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            background: var(--card-bg);
+            background: var(--bg-card);
             position: relative;
         }
 
@@ -186,16 +180,15 @@
         }
 
         .cell.x {
-            color: var(--x-color);
+            color: var(--accent);
         }
 
         .cell.o {
-            color: var(--o-color);
+            color: #ff6b6b;
         }
 
         .cell:hover {
-            background: var(--hover);
-            transform: scale(1.03);
+            background: var(--bg-hover);
         }
 
         .controls {
@@ -205,8 +198,8 @@
         }
 
         .btn {
-            background: linear-gradient(90deg, var(--primary), #ff6b6b);
-            color: white;
+            background-color: var(--accent);
+            color: var(--bg-dark);
             border: none;
             padding: 12px 25px;
             border-radius: 30px;
@@ -217,8 +210,8 @@
         }
 
         .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+            background-color: #3ab0d0;
+            transform: scale(1.02);
         }
 
         /* Modal */
@@ -244,13 +237,13 @@
         }
 
         .modal-content {
-            background: var(--card-bg);
-            border-radius: 15px;
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
             padding: 30px;
             width: 90%;
             max-width: 500px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--shadow);
             transform: translateY(-20px);
             transition: transform 0.3s;
         }
@@ -262,13 +255,13 @@
         .modal h2 {
             font-size: 2rem;
             margin-bottom: 20px;
-            color: var(--primary);
+            color: var(--accent);
         }
 
         .modal p {
             font-size: 1.2rem;
             margin-bottom: 30px;
-            color: #b0b0b0;
+            color: var(--text-secondary);
         }
 
         /* Responsive Design */
