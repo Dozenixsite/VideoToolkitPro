@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>GameHub · Rock–Paper–Scissors</title>
+  <style>
+    /* =====================
+       GameHub Dark Theme
+       ===================== */
+    :root{
+      --bg: #121212;
+      --surface:#1e1e1e;
+      --text:#f5f5f5;
+      --muted:#cfcfcf;
+      --accent:#4cc9f0;
+      --good:#47e6a1;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+      --ring: 2px solid var(--accent);
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --tap-size:56px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:var(--bg);
+      height:100dvh; /* no scroll on mobile */
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* Layout */
+    .wrap{
+      height:100%;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:12px;
+      padding: max(env(safe-area-inset-top, 12px),12px) 12px 12px 12px;
+      max-width:960px;
+      margin:0 auto;
+    }
+
+    header{
+      background:var(--surface);
+      border-radius:var(--radius);
+      padding:12px clamp(12px,2vw,20px);
+      box-shadow:var(--shadow);
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{
+      width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#7bdff6);
+      display:grid;place-items:center;color:#0b0b0b;font-weight:900;text-shadow:0 1px 0 rgba(255,255,255,.3);
+    }
+    .title{font-size:clamp(16px,2.2vw,20px);font-weight:700;letter-spacing:.3px}
+
+    .scorebar{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .pill{background:#141414;border:1px solid #2a2a2a;border-radius:999px;padding:6px 10px;font-size:14px}
+    .pill strong{color:var(--accent)}
+
+    main{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      min-height:0; /* allow children to shrink */
+    }
+
+    .board{
+      background:var(--surface);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:12px;
+      display:grid;gap:12px;
+      grid-template-rows:auto auto 1fr auto;
+      min-height:0;
+    }
+
+    /* Controls row */
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+    .mode-area{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .select, .btn{
+      background:#141414;border:1px solid #2a2a2a;color:var(--text);
+      padding:10px 12px;border-radius:12px;min-height:var(--tap-size);
+      font-size:15px;line-height:1;cursor:pointer;
+      transition:transform .08s ease, opacity .2s ease, box-shadow .2s ease;
+      touch-action:manipulation;
+    }
+    .select{min-width:140px}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{background:linear-gradient(180deg,#16222a,#111);border-color:#2f2f2f}
+    .btn.accent{background:linear-gradient(180deg,#103444,#0c1f28);border-color:#1c3e4d;box-shadow:0 0 0 1px rgba(76,201,240,.25) inset}
+    .btn.warn{background:linear-gradient(180deg,#3a2f10,#161208);border-color:#4a3a14}
+    .btn:focus-visible{outline: none; box-shadow:0 0 0 3px rgba(76,201,240,.65)}
+
+    /* Versus panel */
+    .versus{
+      background:#151515;border:1px solid #262626;border-radius:12px;padding:12px;display:grid;gap:8px
+    }
+    .faces{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+    .face{
+      background:#101010;border:1px solid #262626;border-radius:12px;min-height:100px;display:grid;place-items:center;
+      font-size:44px;position:relative;overflow:hidden
+    }
+    .face small{position:absolute;top:6px;left:8px;color:var(--muted);font-size:12px;letter-spacing:.3px}
+    .vs{font-weight:800;letter-spacing:1px;color:var(--muted)}
+
+    /* Result text & announcer */
+    .result{ text-align:center; font-weight:700; letter-spacing:.3px; min-height:24px }
+    .result.win{ color: var(--good) }
+    .result.lose{ color: var(--bad) }
+    .result.draw{ color: var(--warn) }
+
+    /* Choice buttons */
+    .choices{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px }
+    .choice{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+      font-size:28px; min-height:var(--tap-size); padding:12px; border-radius:14px; border:1px solid #2a2a2a; background:#141414;
+      cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+      transition: transform .08s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .choice span{font-size:13px;color:var(--muted)}
+    .choice:hover{background:#171717}
+    .choice:active{transform:scale(.97)}
+    .choice:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(76,201,240,.6)}
+
+    /* History */
+    .history{
+      background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:12px; display:grid; gap:10px; min-height:0
+    }
+    .history-list{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px }
+    .hist-item{
+      background:#141414; border:1px solid #2a2a2a; border-radius:12px; padding:8px; min-height:64px;
+      display:grid; place-items:center; text-align:center; gap:2px
+    }
+    .hist-item em{font-style:normal; font-size:12px; color:var(--muted)}
+    .hist-W{ box-shadow:0 0 0 2px rgba(71,230,161,.25) inset }
+    .hist-L{ box-shadow:0 0 0 2px rgba(255,107,107,.25) inset }
+    .hist-D{ box-shadow:0 0 0 2px rgba(255,209,102,.25) inset }
+
+    /* Footer */
+    footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0d0d0d;border:1px solid #2a2a2a; padding:3px 6px; border-radius:6px; font-size:12px}
+
+    /* Modal */
+    .modal{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.55); backdrop-filter:saturate(120%) blur(4px); }
+    .modal.show{ display:grid }
+    .dialog{ background:var(--surface); border:1px solid #2a2a2a; border-radius:18px; padding:18px; width:min(520px,92vw); box-shadow:var(--shadow); display:grid; gap:12px }
+    .dialog h2{ margin:0; font-size:20px }
+    .dialog .row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end }
+
+    /* Animations */
+    .pop{ animation: pop .22s ease }
+    @keyframes pop{ from{ transform:scale(.85); opacity:.0 } to { transform:scale(1); opacity:1 } }
+    .fadeIn{ animation: fadeIn .25s ease }
+    @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+    .flash{ animation: flash .6s ease }
+    @keyframes flash{ 0%{filter:none} 20%{filter:brightness(1.5)} 100%{filter:none} }
+
+    /* Responsive tweaks */
+    @media (min-width: 860px){
+      main{ grid-template-columns: 2fr 1fr; }
+      .board{ grid-template-rows: auto auto 1fr auto }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Rock Paper Scissors game">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">RPS</div>
+        <div class="title">Rock–Paper–Scissors</div>
+      </div>
+      <div class="scorebar" aria-live="polite">
+        <div class="pill" id="playerScore">You: <strong>0</strong></div>
+        <div class="pill" id="botScore">Bot: <strong>0</strong></div>
+        <div class="pill" id="draws">Draws: <strong>0</strong></div>
+        <div class="pill" id="streak">Best Streak: <strong>0</strong></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="board" aria-labelledby="boardTitle">
+        <div class="controls">
+          <h1 id="boardTitle" style="margin:0;font-size:18px">Play</h1>
+          <div class="mode-area">
+            <label class="select" for="modeSelect" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+              <span id="modeLabel">Mode</span>
+              <select id="modeSelect" aria-label="Select mode" style="background:transparent;border:none;color:var(--text);width:120px;outline:none">
+                <option value="quick">Quick Play</option>
+                <option value="bo3">Best of 3</option>
+                <option value="bo5">Best of 5</option>
+                <option value="bo7">Best of 7</option>
+              </select>
+            </label>
+            <button class="btn" id="restartBtn" aria-label="Restart match">Restart</button>
+            <button class="btn warn" id="resetHighBtn" aria-label="Reset high score">Reset High Score</button>
+          </div>
+        </div>
+
+        <div class="versus" aria-live="polite">
+          <div class="faces">
+            <div class="face" id="playerFace" aria-label="Your choice" role="img">
+              <small>You</small>
+              <div class="emoji" aria-hidden="true">❔</div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="face" id="botFace" aria-label="Bot choice" role="img">
+              <small>Bot</small>
+              <div class="emoji" aria-hidden="true">❔</div>
+            </div>
+          </div>
+          <div id="roundResult" class="result" aria-live="polite"></div>
+        </div>
+
+        <div class="choices" role="group" aria-label="Choose your move">
+          <button class="choice" id="rockBtn" aria-label="Choose Rock" data-move="rock">
+            <div>✊</div>
+            <span>Rock (R)</span>
+          </button>
+          <button class="choice" id="paperBtn" aria-label="Choose Paper" data-move="paper">
+            <div>✋</div>
+            <span>Paper (P)</span>
+          </button>
+          <button class="choice" id="scissorsBtn" aria-label="Choose Scissors" data-move="scissors">
+            <div>✌️</div>
+            <span>Scissors (S)</span>
+          </button>
+        </div>
+
+        <div class="controls" style="justify-content:center">
+          <button class="btn accent" id="nextBtn" aria-label="Next round (Enter)">Next &nbsp;⏎</button>
+        </div>
+      </section>
+
+      <aside class="history" aria-labelledby="historyTitle">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <h2 id="historyTitle" style="margin:0;font-size:16px">Last 5 Rounds</h2>
+          <div class="pill" id="bestOfInfo" style="display:none">Best-of: <strong>—</strong></div>
+        </div>
+        <div class="history-list" id="historyList" aria-live="polite"></div>
+        <div class="pill" id="hotkeys" title="Keyboard shortcuts"><span class="kbd">R</span> <span class="kbd">P</span> <span class="kbd">S</span> to choose, <span class="kbd">Enter</span> for next/new round</div>
+      </aside>
+    </main>
+
+    <footer>
+      <div>Made for <strong>GameHub</strong></div>
+      <nav style="display:flex;gap:8px;align-items:center">
+        <a class="btn" href="index.html" aria-label="Go to Home">Home</a>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- Match Winner Modal -->
+  <div class="modal" id="winnerModal" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
+    <div class="dialog pop">
+      <h2 id="winnerTitle">Match Result</h2>
+      <p id="winnerText">You won the match! 🎉</p>
+      <div class="row">
+        <button class="btn" id="playAgainBtn" aria-label="Play again">Play Again</button>
+        <a class="btn" href="index.html" aria-label="Back to Home">Home</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =====================
+    // Utilities & Data
+    // =====================
+    const MOVES = ["rock","paper","scissors"]; // order matters for judgeRound
+    const EMOJI = { rock:"✊", paper:"✋", scissors:"✌️" };
+
+    const qs = s => document.querySelector(s);
+    const qsa = s => Array.from(document.querySelectorAll(s));
+
+    // WebAudio minimalist beeps (no external files)
+    const AudioKit = (()=>{
+      let ctx; const ensure = () => (ctx ??= new (window.AudioContext||window.webkitAudioContext)());
+      const beep = (freq=440, dur=0.09, type='sine', gain=0.06) => {
+        const a = ensure();
+        const o = a.createOscillator();
+        const g = a.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.value = gain; o.connect(g); g.connect(a.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+        o.stop(a.currentTime + dur);
+      };
+      return {
+        click(){ beep(420,0.05,'triangle',0.05) },
+        win(){ beep(660,0.09,'sine',0.07); setTimeout(()=>beep(880,0.1,'sine',0.07),110) },
+        lose(){ beep(160,0.12,'sawtooth',0.06) },
+        draw(){ beep(360,0.06,'square',0.05) }
+      };
+    })();
+
+    // Persistent High Score (best streak in Quick Play)
+    const STORAGE_KEY = 'rps_best_streak';
+    function loadHighScore(){
+      const v = parseInt(localStorage.getItem(STORAGE_KEY)||'0',10);
+      return Number.isFinite(v)? v : 0;
+    }
+    function saveHighScore(v){ localStorage.setItem(STORAGE_KEY, String(v)); }
+
+    // =====================
+    // Game State
+    // =====================
+    const state = {
+      mode: 'quick', // 'quick' | 'bo3'|'bo5'|'bo7'
+      player: 0,
+      bot: 0,
+      draws: 0,
+      streak: 0, // current consecutive wins in Quick Play
+      bestStreak: loadHighScore(),
+      history: [], // {p,b,res}
+      lastBotMoves: [], // for tiny anti-repeat bias
+      lock: false, // block input while animating
+    };
+
+    // =====================
+    // Bot AI (random with tiny anti-repeat bias)
+    // =====================
+    function getBotMove(){
+      // Pick random, but if we'd repeat the same bot move 3 times in a row, reroll once
+      let choice = MOVES[Math.floor(Math.random()*3)];
+      const lb = state.lastBotMoves;
+      if(lb.length >= 3 && lb.slice(-3).every(m => m === choice)){
+        // reroll to avoid 4-in-a-row of same move (tiny bias)
+        choice = MOVES.filter(m=>m!==choice)[Math.floor(Math.random()*2)];
+      }
+      // record last move
+      lb.push(choice); if(lb.length>8) lb.shift();
+      return choice;
+    }
+
+    // =====================
+    // Judging
+    // returns: 'win' | 'lose' | 'draw'
+    // =====================
+    function judgeRound(player, bot){
+      if(player===bot) return 'draw';
+      const i = MOVES.indexOf(player);
+      const j = MOVES.indexOf(bot);
+      // Rock beats Scissors, Paper beats Rock, Scissors beats Paper
+      // Using modular arithmetic
+      return ((i - j + 3) % 3 === 1) ? 'win' : 'lose';
+    }
+
+    // =====================
+    // UI Wiring
+    // =====================
+    const el = {
+      playerScore: qs('#playerScore strong'),
+      botScore: qs('#botScore strong'),
+      draws: qs('#draws strong'),
+      streak: qs('#streak strong'),
+      bestOfInfo: qs('#bestOfInfo'),
+      bestOfInfoStrong: qs('#bestOfInfo strong'),
+      playerFace: qs('#playerFace .emoji'),
+      botFace: qs('#botFace .emoji'),
+      result: qs('#roundResult'),
+      historyList: qs('#historyList'),
+      modeSelect: qs('#modeSelect'),
+      restartBtn: qs('#restartBtn'),
+      resetHighBtn: qs('#resetHighBtn'),
+      nextBtn: qs('#nextBtn'),
+      winnerModal: qs('#winnerModal'),
+      winnerText: qs('#winnerText'),
+      playAgainBtn: qs('#playAgainBtn'),
+    };
+
+    function updateScores(){
+      el.playerScore.textContent = state.player;
+      el.botScore.textContent = state.bot;
+      el.draws.textContent = state.draws;
+      el.streak.textContent = state.bestStreak;
+    }
+
+    function showFaces(p = '❔', b = '❔'){
+      el.playerFace.textContent = p;
+      el.botFace.textContent = b;
+      el.playerFace.parentElement.classList.add('flash');
+      el.botFace.parentElement.classList.add('flash');
+      setTimeout(()=>{
+        el.playerFace.parentElement.classList.remove('flash');
+        el.botFace.parentElement.classList.remove('flash');
+      }, 300);
+    }
+
+    function pushHistory(p, b, res){
+      state.history.unshift({p,b,res});
+      if(state.history.length>5) state.history.pop();
+      renderHistory();
+    }
+
+    function renderHistory(){
+      el.historyList.innerHTML = '';
+      if(state.history.length===0){
+        el.historyList.innerHTML = `<div class="hist-item" style="grid-column:1/-1;color:var(--muted)">No rounds yet</div>`;
+        return;
+      }
+      for(const h of state.history){
+        const badge = h.res==='win'?'W':(h.res==='lose'?'L':'D');
+        const cls = 'hist-' + badge;
+        const title = h.res==='win'?'Win':(h.res==='lose'?'Loss':'Draw');
+        const div = document.createElement('div');
+        div.className = `hist-item ${cls} fadeIn`;
+        div.setAttribute('title', `${title} — You ${h.p} vs Bot ${h.b}`);
+        div.innerHTML = `<div style="font-size:22px">${EMOJI[h.p]} <span style="font-size:12px;color:var(--muted)">vs</span> ${EMOJI[h.b]}</div><em>${badge}</em>`;
+        el.historyList.appendChild(div);
+      }
+    }
+
+    function setMode(m){
+      state.mode = m;
+      resetMatch();
+      if(m==='quick'){
+        el.bestOfInfo.style.display = 'none';
+      }else{
+        const n = parseInt(m.slice(2),10);
+        el.bestOfInfo.style.display = '';
+        el.bestOfInfoStrong.textContent = n;
+      }
+    }
+
+    function resetMatch(){
+      state.player = 0; state.bot = 0; state.draws = 0; state.history = []; state.lock=false;
+      showFaces();
+      el.result.textContent = '';
+      el.result.className = 'result';
+      renderHistory();
+      updateScores();
+    }
+
+    function resetHighScore(){
+      saveHighScore(0); state.bestStreak = 0; updateScores();
+    }
+
+    // =====================
+    // Round Flow
+    // =====================
+    function playRound(playerMove){
+      if(state.lock) return; // prevent double taps
+      state.lock = true;
+      AudioKit.click();
+
+      // Player pick
+      const p = playerMove;
+      const b = getBotMove();
+      const res = judgeRound(p, b);
+
+      // Update UI faces with small reveal timing
+      showFaces(EMOJI[p], '…');
+      setTimeout(()=>{
+        showFaces(EMOJI[p], EMOJI[b]);
+        announceResult(res);
+        applyResult(res);
+        pushHistory(p,b,res);
+        state.lock = false;
+      }, 280);
+    }
+
+    function announceResult(res){
+      el.result.className = 'result ' + (res==='win'?'win':res==='lose'?'lose':'draw');
+      el.result.textContent = res==='win' ? 'You win this round!' : res==='lose' ? 'You lose this round.' : "It's a draw.";
+      if(res==='win') AudioKit.win(); else if(res==='lose') AudioKit.lose(); else AudioKit.draw();
+    }
+
+    function applyResult(res){
+      if(state.mode==='quick'){
+        if(res==='win'){
+          state.player++; state.streak++;
+          if(state.streak > state.bestStreak){ state.bestStreak = state.streak; saveHighScore(state.bestStreak); }
+        }else if(res==='lose'){
+          state.bot++; state.streak = 0; // streak resets on loss
+        }else{
+          state.draws++;
+        }
+        updateScores();
+      }else{
+        const target = Math.ceil(parseInt(state.mode.slice(2),10)/2);
+        if(res==='win') state.player++; else if(res==='lose') state.bot++; else state.draws++;
+        updateScores();
+        // Check match end
+        if(state.player >= target || state.bot >= target){
+          setTimeout(()=>showWinnerModal(state.player>state.bot), 200);
+        }
+      }
+    }
+
+    function showWinnerModal(playerWon){
+      el.winnerText.textContent = playerWon ? 'You win the match! 🎉' : 'Bot wins the match. 🤖';
+      el.winnerModal.classList.add('show');
+      // Trap a11y focus into the dialog
+      el.playAgainBtn.focus();
+    }
+
+    function hideWinnerModal(){ el.winnerModal.classList.remove('show'); }
+
+    // =====================
+    // Input Hookup
+    // =====================
+    function bind(){
+      qsa('.choice').forEach(btn=>{
+        btn.addEventListener('click', ()=> playRound(btn.dataset.move));
+      });
+      el.nextBtn.addEventListener('click', ()=>{
+        // In Quick Play, just clear faces/result for next round; in Best-of, if match over, restart
+        if(el.winnerModal.classList.contains('show')){
+          hideWinnerModal();
+          resetMatch();
+        }else{
+          showFaces('❔','❔');
+          el.result.textContent=''; el.result.className='result';
+        }
+      });
+
+      el.modeSelect.addEventListener('change', e=> setMode(e.target.value));
+      el.restartBtn.addEventListener('click', ()=> resetMatch());
+      el.resetHighBtn.addEventListener('click', ()=>{ if(confirm('Reset best streak?')) resetHighScore(); });
+      el.playAgainBtn.addEventListener('click', ()=>{ hideWinnerModal(); resetMatch(); });
+
+      // Keyboard shortcuts (desktop)
+      window.addEventListener('keydown', (ev)=>{
+        const k = ev.key.toLowerCase();
+        if(['r','p','s','enter'].includes(k)) ev.preventDefault();
+        if(k==='r') playRound('rock');
+        else if(k==='p') playRound('paper');
+        else if(k==='s') playRound('scissors');
+        else if(k==='enter') el.nextBtn.click();
+      });
+    }
+
+    // =====================
+    // Init
+    // =====================
+    function init(){
+      state.bestStreak = loadHighScore();
+      updateScores();
+      renderHistory();
+      bind();
+    }
+    init();
+  </script>
+</body>
+</html>
